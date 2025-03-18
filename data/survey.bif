@@ -1,0 +1,48 @@
+network unknown {
+}
+variable Age {
+  type discrete [ 3 ] { young, adult, old };
+}
+variable Sex {
+  type discrete [ 2 ] { M, F };
+}
+variable Education {
+  type discrete [ 2 ] { high, uni };
+}
+variable Occupation {
+  type discrete [ 2 ] { emp, self };
+}
+variable Residence {
+  type discrete [ 2 ] { small, big };
+}
+variable Transportation {
+  type discrete [ 3 ] { car, train, other };
+}
+probability ( Age ) {
+  table 0.3, 0.5, 0.2;
+}
+probability ( Sex ) {
+  table 0.6, 0.4;
+}
+probability ( Education | Age, Sex ) {
+  (young, M) 0.75, 0.25;
+  (adult, M) 0.72, 0.28;
+  (old, M) 0.88, 0.12;
+  (young, F) 0.64, 0.36;
+  (adult, F) 0.7, 0.3;
+  (old, F) 0.9, 0.1;
+}
+probability ( Occupation | Education ) {
+  (high) 0.96, 0.04;
+  (uni) 0.92, 0.08;
+}
+probability ( Residence | Education ) {
+  (high) 0.25, 0.75;
+  (uni) 0.2, 0.8;
+}
+probability ( Transportation | Occupation, Residence ) {
+  (emp, small) 0.48, 0.42, 0.10;
+  (self, small) 0.56, 0.36, 0.08;
+  (emp, big) 0.58, 0.24, 0.18;
+  (self, big) 0.70, 0.21, 0.09;
+}
