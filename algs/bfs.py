@@ -40,17 +40,6 @@ def inference(model, tokenizer, input_prompt, max_new_tokens=50):
 
 def llm_bfs(var_names_and_desc, dataset, df, temperature, include_statistics=False, include_obs=False): 
 
-    corr = df.corr()
-    # print ('corr:', corr)
-    # sys.exit()
-    # if include_statistics:
-    #     corr = df.corr()
-        # arr = df[[head.symbol, tail.symbol]].to_numpy()
-        # print ('df:', df.to_numpy())
-        # print ('corr:', corr)
-        #corr = df
-    # sys.exit()
-
     if dataset == "asia":
         message_history = asia_prompt
     elif dataset == "child":
@@ -122,15 +111,20 @@ def llm_bfs(var_names_and_desc, dataset, df, temperature, include_statistics=Fal
         # prompt += f'Select variables that are affected by {to_visit}.\n'
         
         if include_statistics:
-          if include_obs:
-            prompt += get_data_prompt_obs(to_visit, df)
-          else:
-            prompt += get_data_prompt(to_visit, corr)
-            # 
+          corr = df.corr()
+          prompt += get_data_prompt(to_visit, corr)
+        if include_obs:
+          prompt += get_data_prompt_obs(to_visit, df)
+        
+        # if include_statistics:
+        #   if include_obs:
+        #     prompt += get_data_prompt_obs(to_visit, df)
+        #   else:
+        #     prompt += get_data_prompt(to_visit, corr)
+        #     # 
 
         prompt += prompt_format
         print(f'{prompt=}')
-        # sys.exit()
 
         message_history.append({
                 "role": "user",
@@ -183,11 +177,17 @@ def llm_bfs(var_names_and_desc, dataset, df, temperature, include_statistics=Fal
         prompt += f'Select variables that are caused by {to_visit}.\n'
         # prompt += f'Select variables that are affected by {to_visit}.\n'
 
+        
         if include_statistics:
-          if include_obs:
-            prompt += get_data_prompt_obs(to_visit, df)
-          else:
-            prompt += get_data_prompt(to_visit, corr)
+          prompt += get_data_prompt(to_visit, corr)
+        if include_obs:
+          prompt += get_data_prompt_obs(to_visit, df)
+
+        # if include_statistics:
+        #   if include_obs:
+        #     prompt += get_data_prompt_obs(to_visit, df)
+        #   else:
+        #     prompt += get_data_prompt(to_visit, corr)
 
         # if include_statistics:
         #     prompt += get_data_prompt(to_visit, corr)
@@ -233,8 +233,6 @@ def llm_bfs(var_names_and_desc, dataset, df, temperature, include_statistics=Fal
         for node in answer:
             if node in unvisited_nodes and node not in frontier:
                 frontier.append(node)
-        
-
 
     print(predict_graph)
     df_order = [var for var in df.columns]
