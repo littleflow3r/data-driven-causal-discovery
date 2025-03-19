@@ -16,9 +16,6 @@ import credentials
 
 def inference(model, tokenizer, input_prompt, max_new_tokens=50):
   print (f'## Inference..')
-  # inputs= tokenizer.encode(input_prompt, return_tensors="pt") --> only return input_ids
-  # output = model.generate(inputs)
-  # inputs= tokenizer(input_prompt, return_tensors="pt").to("cuda")
   inputs= tokenizer(input_prompt, return_tensors="pt")
   output = model.generate(
           input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"], max_new_tokens=max_new_tokens, pad_token_id=tokenizer.eos_token_id)[:, inputs["input_ids"].shape[1]:]
@@ -31,10 +28,8 @@ def inference(model, tokenizer, input_prompt, max_new_tokens=50):
   # print (f'{output_decode=}')
   return output_decode, all_outs
 
-
-def llm_pairwise(var_names_and_desc, prompts, df, temperature, include_statistics=False):
+def llm_pairwise(var_names_and_desc, prompts, df, temperature, include_statistics=False, include_obs=False):
     client = OpenAI(api_key=credentials.oai_key)
-
     # list all edges
     edges = list(combinations(df.columns, 2))
     previous_edges = PreviousEdges()
@@ -65,25 +60,16 @@ def llm_pairwise(var_names_and_desc, prompts, df, temperature, include_statistic
 
         if include_statistics:
             arr = df[[head.symbol, tail.symbol]].to_numpy()
-            obs_data = df[[head.symbol, tail.symbol]]
-            # print (head, tail)
-            # print (head.name, tail.name)
-
             corr_coef = np.corrcoef(arr)[0,1]
             corr_coef = round(corr_coef, 2)
             query += f'''
             To help you, the Pearson correlation coefficient between "{head.name}" and "{tail.name}" is {corr_coef}
             '''
-            # query += f'''
-            # Here is some observational data for "{head.name}" and "{tail.name}": {obs_data.to_string(index=False)} \n
-            # '''
-            
-        # query += f'''
-        # Question: Which cause-and-effect relationship is more likely? 
-        # A. "{head.name}" causes "{tail.name}". 
-        # B. "{tail.name}" causes "{head.name}". 
-        # C. There is no causal relationship between "{head.name}" and "{tail.name}".
-        # Utilize the observational data and work step by step. Provide your final answer within the tags <Answer>A/B/C</Answer>.'''
+        if include_obs:
+            obs_data = df[[head.symbol, tail.symbol]]
+            query += f'''
+            Here is some observational data for "{head.name}" and "{tail.name}": {obs_data.to_string(index=False)} \n
+            '''
 
         query += f''' 
         A. "{head.name}" causes "{tail.name}". 
@@ -145,22 +131,20 @@ def midllm_pairwise(var_names_and_desc, prompts, df, model, tokenizer, max_new_t
         query = f'''{prompts["user"]}\n
         Choose a correct statement regarding the causal relationship between "{head.name}" and "{tail.name}".
         '''
+
         if include_statistics:
             arr = df[[head.symbol, tail.symbol]].to_numpy()
-            obs_data = df[[head.symbol, tail.symbol]]
-            # print (obs_data.to_string(index=False))
-            # print (arr.to_string())
-            # sys.exit()
+            corr_coef = np.corrcoef(arr)[0,1]
+            corr_coef = round(corr_coef, 2)
             query += f'''
-            As additional information, below is a set of observational data for the pair "{head.name}" and "{tail.name}":\n {obs_data.to_string(index=False)} \n
+            To help you, the Pearson correlation coefficient between "{head.name}" and "{tail.name}" is {corr_coef}
             '''
-        #     # query += f'''
-        #     # Choose a correct statement regarding the causal relationship between "{head.name}" and "{tail.name}".
-        #     # '''
-        # else:
-        #   query = f'''
-        #   # Choose a correct statement regarding the causal relationship between "{head.name}" and "{tail.name}".
-        #   # '''
+        if include_obs:
+            obs_data = df[[head.symbol, tail.symbol]]
+            query += f'''
+            Here is some observational data for "{head.name}" and "{tail.name}": {obs_data.to_string(index=False)} \n
+            '''
+
         query += f''' 
         A. "{head.name}" causes "{tail.name}". 
         B. "{tail.name}" causes "{head.name}". 
